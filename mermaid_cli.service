@@ -1,0 +1,13 @@
+[Unit]
+Description=Mermaid FastAPI Application
+After=network.target
+
+[Service]
+User=ec2_user     
+Group=ec2_user  
+WorkingDirectory=/home/ec2-user/fastaptest  
+ExecStart=/home/ec2-user/fastaptest/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
