@@ -7,10 +7,13 @@ from urllib.parse import urlparse
 app = FastAPI()
 s3 = boto3.client('s3')
 
-TEMP_DIR = '/home/ec2-user/mmd_examples/data'
+
 
 @app.get("/generate")
 async def generate_diagram(input_file: str):
+
+    TEMP_DIR = '/home/ec2-user/mmd_examples/data'
+    
     # Parse the S3 URL
     parsed_url = urlparse(input_file)
     bucket = parsed_url.netloc.split('.')[0]
