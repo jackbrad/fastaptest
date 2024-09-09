@@ -5,13 +5,13 @@ import os
 from urllib.parse import urlparse
 
 app = FastAPI()
-s3 = boto3.client('s3')
+
 
 
 
 @app.get("/generate")
 async def generate_diagram(input_file: str):
-
+    s3 = boto3.client('s3')
     TEMP_DIR = '/home/ec2-user/mmd_examples/data'
     
     # Parse the S3 URL
