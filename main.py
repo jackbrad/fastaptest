@@ -10,7 +10,7 @@ app = FastAPI()
 
 
 @app.get("/generate")
-async def generate_diagram(input_file: str):
+def generate_diagram(input_file: str):
     s3 = boto3.client('s3')
     TEMP_DIR = '/home/ec2-user/mmd_examples/data'
     
@@ -44,6 +44,3 @@ async def generate_diagram(input_file: str):
     # Return the S3 URL of the uploaded file
     return {"message": "Diagram generated and uploaded", "url": f"https://{bucket}.s3.amazonaws.com/{output_s3_key}"}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
