@@ -1,7 +1,8 @@
 import boto3
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 import subprocess
 import os
+from urllib.parse import urlparse
 import logging
 
 # Set up logging
@@ -10,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 s3 = boto3.client('s3')
+
 TEMP_DIR = '/home/ec2-user/mmd_examples/data'
 
 @app.get("/test")
@@ -18,28 +20,33 @@ def test_api():
     return {"status": "ok", "message": "API is running"}
 
 @app.get("/generate")
-def generate_diagram(bucket: str = Query(..., description="S3 bucket name"), 
-                     key: str = Query(..., description="S3 object key")):
-    logger.info(f"Received request to generate diagram for bucket: {bucket}, key: {key}")
+def generate_diagram(input_file: str):
+    logger.info(f"Received request to generate diagram for: {input_file}")
+
+    # Parse the S3 URL
+    parsed_url = urlparse(input_file)
+    bucket = parsed_url.netloc.split('.')[0]
+    s3_key = parsed_url.path.lstrip('/')
+    logger.info(f"Parsed S3 URL - Bucket: {bucket}, Key: {s3_key}")
 
     # Generate output filename
-    output_file = os.path.basename(key).rsplit('.', 1)[0] + '.png'
-    output_s3_key = os.path.join(os.path.dirname(key), output_file)
+    output_file = os.path.basename(s3_key).rsplit('.', 1)[0] + '.png'
+    output_s3_key = os.path.join(os.path.dirname(s3_key), output_file)
     logger.info(f"Generated output filename: {output_file}, S3 key: {output_s3_key}")
     
     # Set full paths for input and output files
-    input_path = os.path.join(TEMP_DIR, os.path.basename(key))
+    input_path = os.path.join(TEMP_DIR, os.path.basename(s3_key))
     output_path = os.path.join(TEMP_DIR, output_file)
     logger.info(f"Local file paths - Input: {input_path}, Output: {output_path}")
     
     try:
         # Download file from S3
-        logger.info(f"Downloading file from S3: {key}")
-        s3.download_file(bucket, key, input_path)
+        logger.info(f"Downloading file from S3: {s3_key}")
+        s3.download_file(bucket, s3_key, input_path)
         logger.info("File downloaded successfully")
         
         # Generate diagram
-        cmd = f"docker run --rm -u 0:0 -v {TEMP_DIR}:/data minlag/mermaid-cli -i {os.path.basename(key)} -o {output_file}"
+        cmd = f"docker run --rm -u 0:0 -v {TEMP_DIR}:/data minlag/mermaid-cli -i {os.path.basename(s3_key)} -o {output_file}"
         logger.info(f"Executing command: {cmd}")
         result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
         logger.info(f"Subprocess output: {result.stdout}")
